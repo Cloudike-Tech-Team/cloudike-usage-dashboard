@@ -11,6 +11,6 @@ const files = [
 test('replaceChildren is never passed an un-spread .map() array', () => {
   for (const f of files) {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8');
-    assert.doesNotMatch(src, /replaceChildren\((?!\.\.\.)[^)]*\.map\(/, `${f}: spread the array into replaceChildren(...)`);
+    assert.doesNotMatch(src, /replaceChildren\((?!\.\.\.)[^()]*\.map\(/, `${f}: spread the array into replaceChildren(...)`);
   }
 });
