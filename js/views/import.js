@@ -8,8 +8,8 @@ export async function mount(root, ctx) {
     root.replaceChildren(el('h2', { text: '붙여넣기 가져오기' }), el('p', { class: 'muted', text: '먼저 "기업 관리"에서 기업을 추가하세요.' }));
     return;
   }
-  const companySel = el('select', {}, ...companies.map((c) => option(String(c.company_id), `${c.name} (${c.company_id})`)));
-  const textarea = el('textarea', { class: 'paste', placeholder: '스프레드시트에서 표를 복사해 여기에 붙여넣으세요.\n열 순서: 번호, 주차, 총 유저수, 활성 유저수, 사용량(GB), 트래픽(GB), 제공량(TB), 기록 날짜 (헤더 줄이 있어도 됩니다)' });
+  const companySel = el('select', { onChange: invalidate }, ...companies.map((c) => option(String(c.company_id), `${c.name} (${c.company_id})`)));
+  const textarea = el('textarea', { class: 'paste', onInput: invalidate, placeholder: '스프레드시트에서 표를 복사해 여기에 붙여넣으세요.\n열 순서: 번호, 주차, 총 유저수, 활성 유저수, 사용량(GB), 트래픽(GB), 제공량(TB), 기록 날짜 (헤더 줄이 있어도 됩니다)' });
   const previewBtn = el('button', { type: 'button', class: 'btn primary', text: '미리보기', onClick: preview });
   const importBtn = el('button', { type: 'button', class: 'btn primary', text: '가져오기', disabled: true, onClick: doImport });
   const skipErrors = el('input', { type: 'checkbox' });
@@ -24,15 +24,34 @@ export async function mount(root, ctx) {
 
   let parsed = null;
   let existingWeeks = new Set();
+  let previewedCompanyId = null;
+
+  function invalidate() {
+    parsed = null;
+    existingWeeks = new Set();
+    previewedCompanyId = null;
+    previewArea.replaceChildren();
+    summary.textContent = '내용이 바뀌었습니다. 다시 미리보기를 눌러주세요.';
+    importBtn.disabled = true;
+  }
 
   async function preview() {
-    parsed = parsePaste(textarea.value);
+    const next = parsePaste(textarea.value);
     const companyId = Number(companySel.value);
     previewBtn.disabled = true;
-    const { data, error } = await ctx.db.listWeekly({ companyIds: [companyId] });
-    previewBtn.disabled = false;
+    importBtn.disabled = true;
+    parsed = null;
+    let res;
+    try {
+      res = await ctx.db.listWeekly({ companyIds: [companyId] });
+    } finally {
+      previewBtn.disabled = false;
+    }
+    const { data, error } = res;
     if (error) return toast(mapDbError(error), 'error');
+    parsed = next;
     existingWeeks = new Set(data.map((r) => r.week_start));
+    previewedCompanyId = companyId;
     const overwrite = parsed.rows.filter((r) => r.errors.length === 0 && existingWeeks.has(r.weekStart)).length;
     const warn = parsed.rows.filter((r) => r.warnings.length).length;
     summary.textContent = `총 ${parsed.summary.total}행, 정상 ${parsed.summary.ok}, 오류 ${parsed.summary.error}, 경고 ${warn}, 기존 주차 덮어쓰기 ${overwrite}` +
@@ -64,7 +83,7 @@ export async function mount(root, ctx) {
   async function doImport() {
     if (!parsed) return;
     if (parsed.summary.error > 0 && !skipErrors.checked) return toast('오류 행이 있습니다. 수정하거나 "오류 행은 건너뛰고 가져오기"를 체크하세요.', 'error');
-    const companyId = Number(companySel.value);
+    const companyId = previewedCompanyId;
     const rows = toUsageRows(parsed, companyId);
     const overwrite = rows.filter((r) => existingWeeks.has(r.week_start)).length;
     if (overwrite && !confirmKo(`기존 주차 ${overwrite}건을 덮어씁니다. 계속할까요?`)) return;
@@ -77,6 +96,7 @@ export async function mount(root, ctx) {
     previewArea.replaceChildren();
     summary.textContent = '';
     parsed = null;
+    previewedCompanyId = null;
     importBtn.disabled = true;
   }
 }

@@ -42,9 +42,9 @@ export async function mount(root, ctx) {
     const ids = [...state.selected];
     const [weeklyRes, runRes] = await Promise.all([ids.length ? ctx.db.listWeekly({ companyIds: ids }) : Promise.resolve({ data: [] }), ctx.db.latestRun()]);
     if (seq !== loadSeq) return;
-    if (weeklyRes.error) return toast(mapDbError(weeklyRes.error), 'error');
+    renderRun(runRes);
     if (runRes.error) toast(mapDbError(runRes.error), 'error');
-    renderRun(runRes.data);
+    if (weeklyRes.error) return toast(mapDbError(weeklyRes.error), 'error');
     const selectedCompanies = companies.filter((c) => state.selected.has(c.company_id));
     const rows = filterByWeeks(weeklyRes.data || [], state.weeks);
     renderLineChart(usageCanvas, buildSeries(rows, selectedCompanies, 'usage_gb'), { title: '사용량(GB) 추이', unit: 'GB' });
@@ -52,8 +52,10 @@ export async function mount(root, ctx) {
     renderCards(weeklyRes.data || [], selectedCompanies);
   }
 
-  function renderRun(run) {
+  function renderRun({ data: run, error }) {
     const value = runBox.querySelector('.value');
+    if (error) { value.className = 'value muted'; value.textContent = '수집 이력을 불러오지 못했습니다'; return; }
+    value.className = 'value';
     if (!run) { value.textContent = '아직 실행 기록이 없습니다'; return; }
     const [label, kind] = STATUS_KO[run.status] || [run.status, ''];
     const when = new Date(run.started_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
