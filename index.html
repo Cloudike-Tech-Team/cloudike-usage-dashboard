@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기업 사용량 대시보드</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 로그인 -->
+  <section id="login-view" class="login" hidden>
+    <form id="login-form" class="card login-card">
+      <h1>기업 사용량 대시보드</h1>
+      <p class="muted">팀 계정으로 로그인하세요.</p>
+      <label>이메일<input id="login-email" type="email" autocomplete="username" required></label>
+      <label>비밀번호<input id="login-password" type="password" autocomplete="current-password" required></label>
+      <button type="submit" class="btn primary">로그인</button>
+      <p id="login-error" class="error" hidden></p>
+    </form>
+  </section>
+
+  <!-- 메인 -->
+  <section id="app-view" hidden>
+    <header class="topbar">
+      <h1>기업 사용량 대시보드</h1>
+      <nav class="tabs" id="nav">
+        <button type="button" class="tab" data-view="dashboard">대시보드</button>
+        <button type="button" class="tab" data-view="weekly">주차별 데이터</button>
+        <button type="button" class="tab" data-view="companies">기업 관리</button>
+        <button type="button" class="tab" data-view="import">붙여넣기 가져오기</button>
+      </nav>
+      <div class="topbar-right">
+        <span id="user-email" class="muted"></span>
+        <button id="logout-btn" class="btn ghost" type="button">로그아웃</button>
+      </div>
+    </header>
+    <main id="view-root" class="content"></main>
+  </section>
+
+  <div id="toast" class="toast" hidden></div>
+  <p id="config-error" class="error" style="padding:24px" hidden>js/config.js 에 Supabase URL 과 anon key 를 입력하세요.</p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script src="js/config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
