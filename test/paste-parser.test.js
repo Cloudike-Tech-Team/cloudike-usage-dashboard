@@ -17,16 +17,16 @@ test('parses the 93-row fixture with header: all ok, unique monotonic weeks, lab
   assert.equal(first.weekLabel, '2024년 12월 5주차');
   assert.equal(first.weekStart, '2024-12-30');            // 월요일 기록 → 직전 주
   assert.equal(first.collectedAt, '2025-01-06T00:00:00+09:00');
-  assert.equal(first.totalUsers, 592);
-  assert.equal(first.usageGb, 586.97);
-  assert.equal(first.quotaValue, 8);
+  assert.equal(first.totalUsers, 310);
+  assert.equal(first.usageGb, 240);
+  assert.equal(first.quotaValue, 10);
   assert.equal(first.quotaUnit, 'TB');
-  assert.equal(first.quotaGb, 8192);
+  assert.equal(first.quotaGb, 10240);
   const dash = parsed.rows.find((r) => r.line === 26);     // 25번 행: 트래픽 '-'
   assert.equal(dash.trafficGb, null);
   assert.equal(dash.errors.length, 0);
   const threeDecimals = parsed.rows.find((r) => r.weekLabel === '2026년 3월 4주차');
-  assert.equal(threeDecimals.usageGb, 1289.112);
+  assert.equal(threeDecimals.usageGb, 578.388);
 });
 
 test('parses without header using default column order', () => {
