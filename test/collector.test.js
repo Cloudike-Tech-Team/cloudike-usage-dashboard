@@ -70,3 +70,31 @@ test('collectAll: all fail → failed, all ok → success, none → success', as
   assert.equal(none.status, 'success');
   assert.match(none.message, /활성 기업이 없습니다/);
 });
+
+test('fetchCompanyUsage passes signal with timeout and retries AbortError', async () => {
+  let calls = 0;
+  let seenSignal = null;
+  const fetchFn = async (url, init) => {
+    calls++;
+    seenSignal = init.signal;
+    assert(init.signal instanceof AbortSignal, 'signal must be an AbortSignal');
+    if (calls < 2) throw new DOMException('The operation was aborted', 'AbortError');
+    return res(200, apiJson);
+  };
+  const r = await fetchCompanyUsage({ fetchFn, apiBase: 'x', apiToken: 't', companyId: 1, retries: 3, sleep: noSleep, timeoutMs: 5000 });
+  assert.equal(r.ok, true);
+  assert.equal(calls, 2);
+  assert(seenSignal instanceof AbortSignal, 'seenSignal must be an AbortSignal');
+});
+
+test('fetchCompanyUsage with repeated AbortError eventually fails as 요청 실패', async () => {
+  let calls = 0;
+  const fetchFn = async () => {
+    calls++;
+    throw new DOMException('The operation was aborted', 'AbortError');
+  };
+  const r = await fetchCompanyUsage({ fetchFn, apiBase: 'x', apiToken: 't', companyId: 1, retries: 2, sleep: noSleep, timeoutMs: 1000 });
+  assert.equal(r.ok, false);
+  assert.equal(calls, 2);
+  assert.match(r.error, /요청 실패:/);
+});

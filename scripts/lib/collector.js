@@ -26,12 +26,13 @@ export function usageSummaryUrl(apiBase, companyId, apiToken) {
   return `${base}/api/1/analytics/company_usage_summary/?company_id=${encodeURIComponent(companyId)}&api_token=${encodeURIComponent(apiToken)}`;
 }
 
-export async function fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId, retries = 3, sleep = defaultSleep }) {
+export async function fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId, retries = 3, sleep = defaultSleep, timeoutMs = 30000 }) {
   const url = usageSummaryUrl(apiBase, companyId, apiToken);
   let lastError;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const res = await fetchFn(url, { headers: { accept: 'application/json' } });
+      const signal = AbortSignal.timeout(timeoutMs);
+      const res = await fetchFn(url, { headers: { accept: 'application/json' }, signal });
       if (res.status === 404) return { ok: false, error: '기업 없음(404)' };
       if (res.status === 403) return { ok: false, error: 'API 토큰 거부(403)' };
       if (res.status === 400) return { ok: false, error: '잘못된 요청(400)' };
@@ -45,12 +46,12 @@ export async function fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId,
   return { ok: false, error: `요청 실패: ${lastError?.message ?? String(lastError)}` };
 }
 
-export async function collectAll({ fetchFn, companies, apiBase, apiToken, weekStart, now = new Date(), retries = 3, sleep = defaultSleep }) {
+export async function collectAll({ fetchFn, companies, apiBase, apiToken, weekStart, now = new Date(), retries = 3, sleep = defaultSleep, timeoutMs = 30000 }) {
   const label = weekLabel(weekStart);
   const collectedAt = now.toISOString();
   const results = [];
   for (const c of companies) {
-    const r = await fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId: c.company_id, retries, sleep });
+    const r = await fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId: c.company_id, retries, sleep, timeoutMs });
     results.push(r.ok
       ? { companyId: c.company_id, name: c.name, ok: true, row: usageRowFromApi(r.json, { companyId: c.company_id, weekStart, weekLabel: label, collectedAt }) }
       : { companyId: c.company_id, name: c.name, ok: false, error: r.error });

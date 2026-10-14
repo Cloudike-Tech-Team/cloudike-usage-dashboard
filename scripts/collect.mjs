@@ -22,18 +22,25 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart) || !isMonday(weekStart)) {
 const baseHeaders = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
 async function sb(method, path, body, prefer) {
   const headers = prefer ? { ...baseHeaders, Prefer: prefer } : baseHeaders;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(30000) });
   const text = await res.text();
   if (!res.ok) throw new Error(`Supabase ${method} ${path} → HTTP ${res.status}: ${text.slice(0, 300)}`);
   return text ? JSON.parse(text) : null;
 }
 
-const [run] = await sb('POST', 'usage_collection_runs', { trigger, week_start: weekStart, status: 'running' }, 'return=representation');
+let run;
+try {
+  [run] = await sb('POST', 'usage_collection_runs', { trigger, week_start: weekStart, status: 'running' }, 'return=representation');
+} catch (e) {
+  console.error('수집기 오류:', e.message);
+  process.exit(1);
+}
 const finish = (patch) => sb('PATCH', `usage_collection_runs?id=eq.${run.id}`, { finished_at: new Date().toISOString(), ...patch });
 
+let result = null;
 try {
   const companies = await sb('GET', 'usage_companies?is_active=eq.true&select=company_id,name&order=company_id');
-  const result = await collectAll({ fetchFn: fetch, companies, apiBase: API_BASE, apiToken: API_TOKEN, weekStart });
+  result = await collectAll({ fetchFn: fetch, companies, apiBase: API_BASE, apiToken: API_TOKEN, weekStart });
   if (result.rows.length) {
     await sb('POST', 'usage_weekly?on_conflict=company_id,week_start', result.rows, 'resolution=merge-duplicates,return=minimal');
   }
@@ -42,7 +49,9 @@ try {
   if (result.failureCount) console.log(result.message);
   process.exit(result.status === 'failed' ? 1 : 0);
 } catch (e) {
-  await finish({ status: 'failed', message: `수집기 오류: ${e.message}` }).catch(() => {});
+  const patch = { status: 'failed', message: result ? `${result.message} — ${e.message}` : `수집기 오류: ${e.message}` };
+  const counts = result ? { success_count: result.successCount, failure_count: result.failureCount } : {};
+  await finish({ ...patch, ...counts }).catch(() => {});
   console.error('수집기 오류:', e.message);
   process.exit(1);
 }
