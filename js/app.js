@@ -1,5 +1,5 @@
 import { makeDb } from './db.js';
-import { toast } from './ui.js';
+import { toast, mapDbError } from './ui.js';
 import * as dashboard from './views/dashboard.js';
 import * as weekly from './views/weekly.js';
 import * as companies from './views/companies.js';
@@ -26,7 +26,7 @@ if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PRO
     async companies(force = false) {
       if (companyCache && !force) return companyCache;
       const { data, error } = await db.listCompanies();
-      if (error) { toast(`기업 목록을 불러오지 못했습니다: ${error.message}`, 'error'); return companyCache || []; }
+      if (error) { toast(mapDbError(error), 'error'); return companyCache || []; }
       companyCache = data;
       return data;
     },
@@ -39,8 +39,9 @@ if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PRO
     location.hash = name;
     document.querySelectorAll('#nav .tab').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
     const root = $('view-root');
-    root.replaceChildren();
-    VIEWS[name].mount(root, ctx);
+    const host = document.createElement('div');
+    root.replaceChildren(host);
+    VIEWS[name].mount(host, ctx);
   }
 
   function renderAuth(session) {

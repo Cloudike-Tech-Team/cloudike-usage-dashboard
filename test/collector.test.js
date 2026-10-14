@@ -12,7 +12,7 @@ test('usageRowFromApi maps the NRF-5058 response', () => {
     company_id: 7, week_start: '2026-10-12', week_label: '2026년 10월 3주차',
     total_users: 42, active_users: 38, usage_gb: 512.37, traffic_gb: 120.5,
     quota_value: 2, quota_unit: 'TB', quota_gb: 2048, source: 'auto',
-    collected_at: '2026-10-16T00:00:00.000Z', note: null,
+    collected_at: '2026-10-16T00:00:00.000Z',
   });
 });
 

@@ -1,5 +1,8 @@
 name: 주간 사용량 수집
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: '0 0 * * 5'   # 매주 금요일 09:00 KST (UTC 00:00)

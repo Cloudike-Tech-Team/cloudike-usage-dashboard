@@ -1,5 +1,6 @@
 import { el, toast, mapDbError, confirmKo, option } from '../ui.js';
 import { parsePaste, toUsageRows } from '../lib/paste-parser.js';
+import { formatDateKo } from '../lib/week.js';
 import { formatGb, formatQuota, formatInt } from '../lib/units.js';
 
 export async function mount(root, ctx) {
@@ -25,8 +26,10 @@ export async function mount(root, ctx) {
   let parsed = null;
   let existingWeeks = new Set();
   let previewedCompanyId = null;
+  let previewGen = 0;
 
   function invalidate() {
+    previewGen++;
     parsed = null;
     existingWeeks = new Set();
     previewedCompanyId = null;
@@ -38,6 +41,8 @@ export async function mount(root, ctx) {
   async function preview() {
     const next = parsePaste(textarea.value);
     const companyId = Number(companySel.value);
+    const companyName = companies.find((c) => c.company_id === companyId)?.name || String(companyId);
+    const gen = previewGen;
     previewBtn.disabled = true;
     importBtn.disabled = true;
     parsed = null;
@@ -47,6 +52,7 @@ export async function mount(root, ctx) {
     } finally {
       previewBtn.disabled = false;
     }
+    if (gen !== previewGen) return;
     const { data, error } = res;
     if (error) return toast(mapDbError(error), 'error');
     parsed = next;
@@ -54,10 +60,10 @@ export async function mount(root, ctx) {
     previewedCompanyId = companyId;
     const overwrite = parsed.rows.filter((r) => r.errors.length === 0 && existingWeeks.has(r.weekStart)).length;
     const warn = parsed.rows.filter((r) => r.warnings.length).length;
-    summary.textContent = `총 ${parsed.summary.total}행, 정상 ${parsed.summary.ok}, 오류 ${parsed.summary.error}, 경고 ${warn}, 기존 주차 덮어쓰기 ${overwrite}` +
+    summary.textContent = `대상 기업: ${companyName} · 총 ${parsed.summary.total}행, 정상 ${parsed.summary.ok}, 오류 ${parsed.summary.error}, 경고 ${warn}, 기존 주차 덮어쓰기 ${overwrite}` +
       (parsed.headerDetected ? ' · 헤더 인식됨' : ' · 헤더 없음(기본 열 순서)') + ` · 제공량 단위 ${parsed.quotaUnit}`;
     importBtn.disabled = parsed.summary.ok === 0;
-    previewArea.replaceChildren(el('table', { class: 'grid' },
+    previewArea.replaceChildren(el('div', { class: 'table-wrap' }, el('table', { class: 'grid' },
       el('thead', {}, el('tr', {}, ...['행', '주차 라벨', '주차 시작', '기간', '총 유저수', '활성 유저수', '사용량', '트래픽', '제공량', '기록 날짜', '상태']
         .map((t, i) => el('th', { class: i <= 3 || i === 10 ? 'left' : '', text: t })))),
       el('tbody', {}, parsed.rows.map((r) => el('tr', { class: r.errors.length ? 'error' : r.warnings.length ? 'warn' : '' },
@@ -70,14 +76,14 @@ export async function mount(root, ctx) {
         el('td', { text: formatGb(r.usageGb) }),
         el('td', { text: formatGb(r.trafficGb) }),
         el('td', { text: formatQuota(r.quotaGb) }),
-        el('td', { text: r.collectedAt ? r.collectedAt.slice(0, 10) : '-' }),
+        el('td', { text: r.collectedAt ? formatDateKo(r.collectedAt.slice(0, 10)) : '-' }),
         el('td', { class: 'left' }, r.errors.length
           ? el('span', { class: 'badge bad', text: r.errors.join(' / ') })
           : existingWeeks.has(r.weekStart)
             ? el('span', { class: 'badge warn', text: ['덮어쓰기', ...r.warnings].join(' / ') })
             : el('span', { class: r.warnings.length ? 'badge warn' : 'badge ok', text: r.warnings.length ? r.warnings.join(' / ') : '신규' })),
       ))),
-    ));
+    )));
   }
 
   async function doImport() {
@@ -86,7 +92,7 @@ export async function mount(root, ctx) {
     const companyId = previewedCompanyId;
     const rows = toUsageRows(parsed, companyId);
     const overwrite = rows.filter((r) => existingWeeks.has(r.week_start)).length;
-    if (overwrite && !confirmKo(`기존 주차 ${overwrite}건을 덮어씁니다. 계속할까요?`)) return;
+    if (overwrite && !confirmKo(`${companies.find((c) => c.company_id === companyId)?.name || companyId} 기업의 기존 주차 ${overwrite}건을 덮어씁니다. 계속할까요?`)) return;
     importBtn.disabled = true;
     const { error } = await ctx.db.upsertWeekly(rows);
     importBtn.disabled = false;

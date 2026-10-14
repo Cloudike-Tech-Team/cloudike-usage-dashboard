@@ -47,6 +47,7 @@ try {
   await finish({ status: result.status, success_count: result.successCount, failure_count: result.failureCount, message: result.message });
   console.log(`[${result.status}] 주차 ${weekStart} (${trigger}): 성공 ${result.successCount}, 실패 ${result.failureCount}`);
   if (result.failureCount) console.log(result.message);
+  if (result.status === 'partial') console.log(`::warning::${result.message}`);
   process.exit(result.status === 'failed' ? 1 : 0);
 } catch (e) {
   const patch = { status: 'failed', message: result ? `${result.message} — ${e.message}` : `수집기 오류: ${e.message}` };

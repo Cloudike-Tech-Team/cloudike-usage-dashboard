@@ -13,14 +13,15 @@ export async function mount(root, ctx) {
     el('label', {}, '표시 이름', el('input', { name: 'name', type: 'text', required: true, maxlength: '200', placeholder: '예: 가나다 주식회사' })),
     el('button', { type: 'submit', class: 'btn primary', text: '기업 추가' }),
   );
-  const hint = el('p', { class: 'hint', text: '추가한 기업은 다음 금요일 09:00부터 자동 수집됩니다. 즉시 수집은 GitHub Actions → "주간 사용량 수집" → "Run workflow"를 사용하세요.' });
+  const hint = el('p', { class: 'hint' }, '추가한 기업은 다음 금요일 09:00부터 자동 수집됩니다. 즉시 수집은 GitHub Actions → "주간 사용량 수집" → "Run workflow"를 사용하세요. ',
+    el('a', { href: 'https://github.com/Cloudike-Tech-Team/cloudike-usage-dashboard/actions/workflows/collect.yml', target: '_blank', rel: 'noopener', text: 'Actions 열기' }));
 
   const table = el('table', { class: 'grid' },
     el('thead', {}, el('tr', {},
       ...['기업 ID', '이름', '상태', '등록일', '최신 주차', '작업'].map((t, i) => el('th', { class: i < 2 ? 'left' : '', text: t })))),
     el('tbody', {}, companies.length ? companies.map(rowOf) : el('tr', {}, el('td', { colspan: '6', class: 'left muted', text: '등록된 기업이 없습니다. 위에서 추가하세요.' }))),
   );
-  root.replaceChildren(el('h2', { text: '기업 관리' }), form, hint, table);
+  root.replaceChildren(el('h2', { text: '기업 관리' }), form, hint, el('div', { class: 'table-wrap' }, table));
 
   function rowOf(c) {
     const last = latest.get(c.company_id);

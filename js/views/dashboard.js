@@ -1,16 +1,20 @@
 import { el, toast, mapDbError, option } from '../ui.js';
 import { buildSeries, filterByWeeks, latestRowsByCompany } from '../lib/series.js';
 import { formatGb, formatQuota, formatInt } from '../lib/units.js';
-import { weekRangeText } from '../lib/week.js';
+import { weekRangeText, formatDateKo } from '../lib/week.js';
 import { renderLineChart } from '../charts.js';
 
 const PERIODS = [[12, '최근 12주'], [26, '최근 26주'], [52, '최근 52주'], [0, '전체']];
-const STATUS_KO = { running: ['실행 중', 'warn'], success: ['성공', 'ok'], partial: ['일부 실패', 'warn'], failed: ['실패', 'bad'] };
+const STATUS_KO = { running: ['실행 중', 'warn'], success: ['성공', 'ok'], partial: ['일부 실패', 'bad'], failed: ['실패', 'bad'] };
 const state = { selected: null, weeks: 26 };
+const knownIds = new Set();
 
 export async function mount(root, ctx) {
   const companies = await ctx.companies();
-  if (!state.selected) state.selected = new Set(companies.filter((c) => c.is_active).map((c) => c.company_id));
+  if (!state.selected) state.selected = new Set();
+  for (const c of companies) {
+    if (c.is_active && !knownIds.has(c.company_id)) { knownIds.add(c.company_id); state.selected.add(c.company_id); }
+  }
   for (const id of [...state.selected]) if (!companies.some((c) => c.company_id === id)) state.selected.delete(id);
 
   const checks = el('div', { class: 'checks' }, ...companies.map((c) => el('label', {},
@@ -61,7 +65,7 @@ export async function mount(root, ctx) {
     const when = new Date(run.started_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
     value.replaceChildren(
       el('span', { class: `badge ${kind}`, text: label }), ` ${when} · ${run.trigger === 'schedule' ? '정기' : '수동'} · 성공 ${run.success_count} / 실패 ${run.failure_count}`,
-      run.week_start ? el('div', { class: 'hint', text: `대상 주차 시작: ${run.week_start}` }) : null,
+      run.week_start ? el('div', { class: 'hint', text: `대상 주차 시작: ${formatDateKo(run.week_start)}` }) : null,
       run.failure_count || run.status === 'failed' ? el('div', { class: 'hint error', text: run.message || '' }) : null,
     );
   }

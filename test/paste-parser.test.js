@@ -94,6 +94,6 @@ test('toUsageRows maps ok rows to usage_weekly insert objects', () => {
     company_id: 42, week_start: '2026-10-05', week_label: '2026년 10월 2주차',
     total_users: 563, active_users: 513, usage_gb: 1516.16, traffic_gb: null,
     quota_value: 8, quota_unit: 'TB', quota_gb: 8192, source: 'import',
-    collected_at: '2026-10-08T00:00:00+09:00', note: null,
+    collected_at: '2026-10-08T00:00:00+09:00',
   });
 });

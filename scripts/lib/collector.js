@@ -17,7 +17,6 @@ export function usageRowFromApi(json, { companyId, weekStart, weekLabel: label, 
     quota_gb: json.quota_gb ?? null,
     source: 'auto',
     collected_at: collectedAt,
-    note: null,
   };
 }
 
@@ -26,7 +25,7 @@ export function usageSummaryUrl(apiBase, companyId, apiToken) {
   return `${base}/api/1/analytics/company_usage_summary/?company_id=${encodeURIComponent(companyId)}&api_token=${encodeURIComponent(apiToken)}`;
 }
 
-export async function fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId, retries = 3, sleep = defaultSleep, timeoutMs = 30000 }) {
+export async function fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId, retries = 3, sleep = defaultSleep, timeoutMs = 15000 }) {
   const url = usageSummaryUrl(apiBase, companyId, apiToken);
   let lastError;
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -46,7 +45,7 @@ export async function fetchCompanyUsage({ fetchFn, apiBase, apiToken, companyId,
   return { ok: false, error: `요청 실패: ${lastError?.message ?? String(lastError)}` };
 }
 
-export async function collectAll({ fetchFn, companies, apiBase, apiToken, weekStart, now = new Date(), retries = 3, sleep = defaultSleep, timeoutMs = 30000 }) {
+export async function collectAll({ fetchFn, companies, apiBase, apiToken, weekStart, now = new Date(), retries = 3, sleep = defaultSleep, timeoutMs = 15000 }) {
   const label = weekLabel(weekStart);
   const collectedAt = now.toISOString();
   const results = [];

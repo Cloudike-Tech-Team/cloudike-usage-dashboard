@@ -1,5 +1,5 @@
 import { el, toast, mapDbError, confirmKo, option } from '../ui.js';
-import { mondayOf, weekLabel, weekRangeText, formatDateKo, todayKST } from '../lib/week.js';
+import { mondayOf, weekLabel, weekRangeText, formatDateKo, todayKST, kstMidnightIso } from '../lib/week.js';
 import { formatGb, formatQuota, formatInt } from '../lib/units.js';
 import { filterByWeeks } from '../lib/series.js';
 import { validateWeeklyInput } from '../lib/weekly-form.js';
@@ -16,7 +16,7 @@ export async function mount(root, ctx) {
   }
   if (!companies.some((c) => c.company_id === state.companyId)) state.companyId = companies[0].company_id;
 
-  const companySel = el('select', { onChange: (e) => { state.companyId = Number(e.target.value); load(); } },
+  const companySel = el('select', { onChange: (e) => { state.companyId = Number(e.target.value); addArea.replaceChildren(); load(); } },
     ...companies.map((c) => option(String(c.company_id), `${c.name} (${c.company_id})`, c.company_id === state.companyId)));
   const periodSel = el('select', { onChange: (e) => { state.weeks = Number(e.target.value); load(); } },
     ...PERIODS.map(([w, t]) => option(String(w), t, w === state.weeks)));
@@ -29,7 +29,7 @@ export async function mount(root, ctx) {
     el('thead', {}, el('tr', {}, ...['주차', '기간', '총 유저수', '활성 유저수', '사용량', '트래픽', '제공량', '출처', '기록 날짜', '메모', '작업']
       .map((t, i) => el('th', { class: i < 2 || i === 9 ? 'left' : '', text: t })))),
     tbody);
-  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, table);
+  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, el('div', { class: 'table-wrap' }, table));
 
   let rows = [];
   let allRows = []; // 기간 필터 전 전체 행(덮어쓰기 확인용)
@@ -154,7 +154,7 @@ export async function mount(root, ctx) {
       if (btn) btn.disabled = true;
       let error;
       try {
-        ({ error } = await ctx.db.upsertWeekly([{ company_id: companyId, ...v.fields, source: 'manual', collected_at: new Date().toISOString() }]));
+        ({ error } = await ctx.db.upsertWeekly([{ company_id: companyId, ...v.fields, source: 'manual', collected_at: kstMidnightIso(dateInput.value) }]));
       } finally {
         if (btn) btn.disabled = false;
       }

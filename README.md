@@ -35,7 +35,7 @@ GitHub Actions (금요일 09:00 KST)
 ```
 
 - GitHub Pages는 정적 호스팅이라 **anon key가 누구에게나 보입니다.** 이것은 정상이며, 데이터 보호는 RLS가 담당합니다.
-- 저장소는 public이지만 사용량 데이터는 저장소에 없습니다. 데이터는 **로그인한 사용자만** 조회·수정할 수 있고, 비로그인(anon) 요청은 DB에서 차단됩니다.
+- 저장소에는 코드와 anon key, 그리고 테스트용 픽스처(`test/fixtures/sample-93rows.tsv`)만 있습니다 — 픽스처를 실제 데이터로 두려면 공개 저장소 특성을 고려하세요. 데이터는 **로그인한 사용자만** 조회·수정할 수 있고, 비로그인(anon) 요청은 DB에서 차단됩니다.
 - **공개 회원가입은 반드시 끄고**, 관리자가 계정을 직접 만들어 줍니다. 가입이 켜져 있으면 누구나 가입해서 데이터를 볼 수 있습니다.
 - `service_role` key는 RLS를 우회하므로 **GitHub Actions 시크릿에만** 두고, 프론트엔드·저장소·`js/config.js`에는 절대 넣지 않습니다.
 - GOV API 토큰(`CLOUDIKE_API_TOKEN`)도 Actions 시크릿에만 둡니다.
@@ -71,6 +71,8 @@ Dashboard → **Authentication → Users → Add user → Create new user**
 ### 1-4. URL 설정
 Dashboard → **Authentication → URL Configuration**
 - **Site URL**: `https://cloudike-tech-team.github.io/cloudike-usage-dashboard/`
+- 이 Supabase 프로젝트를 cs-dashboard와 공유한다면 **Site URL은 바꾸지 말고**, Pages 주소를 **Redirect URLs**에만 추가하세요.
+- 현재 정책은 `using (true)`라서, 공유 프로젝트의 모든 계정(cs-dashboard 사용자 포함)이 사용량 데이터를 읽고 쓸 수 있습니다. 제한하려면 `supabase/schema.sql` 하단의 도메인 제한 주석을 참고하세요.
 
 ### 1-5. API 키 복사
 Dashboard → **Project Settings → API** (또는 **API Keys**)
@@ -196,7 +198,7 @@ gh workflow run "주간 사용량 수집" -R Cloudike-Tech-Team/cloudike-usage-d
 - **주차 라벨**은 `2026년 10월 2주차` 형식이어야 합니다.
 - **기록 날짜**는 `2026. 10. 09`, `2026-10-09`, `2026.10.9` 형식을 허용합니다. 있으면 6절의 규칙으로 주차를 정하고, 없으면 라벨을 목요일 규칙으로 되돌려 추정하며 미리보기에 경고를 표시합니다.
 - 같은 주차가 입력 안에 중복되면 해당 행들이 오류로 표시됩니다. 미리보기에서 해석된 주차와 기간(월~일)을 눈으로 확인한 뒤 "가져오기"를 누르세요. 오류 행은 "오류 행은 건너뛰고 가져오기"를 체크해야 나머지만 저장됩니다.
-- 가져온 행의 출처는 "import"입니다.
+- 가져온 행의 출처는 UI에 "가져오기"로 표시됩니다.
 
 ## 8. 테스트
 
@@ -210,5 +212,7 @@ npm test    # node --test test/*.test.js (Node 20 이상, 의존성 설치 불�
 - **Supabase Free 플랜은 7일간 요청이 없으면 프로젝트가 일시정지**됩니다. 주간 수집이 매주 Supabase에 요청을 보내지만, 수집이 중단되면 일시정지될 수 있습니다. 정지되면 Dashboard에서 Restore하세요.
 - **Actions의 cron은 정시에 시작되지 않고 몇 분~수십 분 지연될 수 있습니다.** 지연되어도 실행 시각(KST)이 속한 주 기준이라, 월요일 00:00을 넘기지 않는 한 같은 주차로 기록됩니다.
 - 수집이 실패했는지는 대시보드의 **"최근 자동 수집"** 상자에서 확인합니다. 전부 실패하면 빨간 "실패" 배지, 일부만 실패하면 "일부 실패" 배지와 사유가 표시됩니다. 원인을 고친 뒤 4절의 수동 실행으로 재수집하세요.
+- **공개 저장소는 60일간 저장소 활동이 없으면 GitHub가 예약(schedule) 워크플로를 자동으로 비활성화**합니다. 주기적으로 push하거나 수동 실행이 필요하며, 비활성화되었다면 Actions 탭에서 해당 워크플로의 "Enable workflow"를 눌러 다시 켜세요.
+- 대시보드의 "최근 자동 수집"이 약 8일보다 오래됐다면 Actions 탭을 확인하세요.
 - 기업을 삭제하면 해당 기업의 주차 데이터도 함께 삭제됩니다. 수집만 멈추려면 "비활성화"를 사용하세요.
 - 회사 도메인 계정만 허용하려면 `supabase/schema.sql` 하단 주석의 조건식으로 정책을 바꾸세요.

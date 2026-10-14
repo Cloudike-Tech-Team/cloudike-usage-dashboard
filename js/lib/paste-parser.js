@@ -138,6 +138,5 @@ export function toUsageRows(parsed, companyId) {
     quota_gb: r.quotaGb,
     source: 'import',
     collected_at: r.collectedAt,
-    note: null,
   }));
 }
