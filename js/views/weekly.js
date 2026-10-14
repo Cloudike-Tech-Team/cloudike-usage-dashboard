@@ -32,10 +32,15 @@ export async function mount(root, ctx) {
   root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, table);
 
   let rows = [];
+  let allRows = []; // 기간 필터 전 전체 행(덮어쓰기 확인용)
+  let loadSeq = 0;
   async function load() {
     tbody.replaceChildren(el('tr', {}, el('td', { colspan: '11', class: 'left muted', text: '불러오는 중…' })));
+    const seq = ++loadSeq;
     const { data, error } = await ctx.db.listWeekly({ companyIds: [state.companyId] });
+    if (seq !== loadSeq) return;
     if (error) { toast(mapDbError(error), 'error'); return; }
+    allRows = data;
     rows = filterByWeeks(data, state.weeks).slice().sort((a, b) => (a.week_start < b.week_start ? 1 : -1)); // 최신 먼저
     render();
   }
@@ -115,6 +120,7 @@ export async function mount(root, ctx) {
   }
 
   function showAddForm() {
+    const companyId = state.companyId;
     const dateInput = el('input', { type: 'date', value: todayKST(), onChange: syncWeek });
     const weekInfo = el('span', { class: 'hint' });
     const i = inputs();
@@ -142,9 +148,16 @@ export async function mount(root, ctx) {
       e.preventDefault();
       const v = collect(i, weekStart);
       if (!v.ok) return toast(v.errors.join('\n'), 'error');
-      const existing = rows.find((x) => x.week_start === weekStart);
+      const existing = allRows.find((x) => x.week_start === weekStart);
       if (existing && !confirmKo(`${existing.week_label} 데이터가 이미 있습니다. 덮어쓸까요?`)) return;
-      const { error } = await ctx.db.upsertWeekly([{ company_id: state.companyId, ...v.fields, source: 'manual', collected_at: new Date().toISOString() }]);
+      const btn = e.submitter;
+      if (btn) btn.disabled = true;
+      let error;
+      try {
+        ({ error } = await ctx.db.upsertWeekly([{ company_id: companyId, ...v.fields, source: 'manual', collected_at: new Date().toISOString() }]));
+      } finally {
+        if (btn) btn.disabled = false;
+      }
       if (error) return toast(mapDbError(error), 'error');
       toast(existing ? '덮어썼습니다' : '추가했습니다');
       addArea.replaceChildren();

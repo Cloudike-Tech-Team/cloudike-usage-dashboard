@@ -28,7 +28,7 @@ export async function mount(root, ctx) {
       el('td', { class: 'left', text: String(c.company_id) }),
       el('td', { class: 'left', text: c.name }),
       el('td', {}, el('span', { class: `badge ${c.is_active ? 'ok' : ''}`, text: c.is_active ? '수집 중' : '비활성' })),
-      el('td', { text: formatDateKo(c.created_at) }),
+      el('td', { text: formatDateKo(new Date(new Date(c.created_at).getTime() + 9 * 3600000).toISOString()) }),
       el('td', { text: last ? `${last.week_label}` : '-' }),
       el('td', {}, el('div', { class: 'actions' },
         el('button', { type: 'button', class: 'btn ghost', text: c.is_active ? '비활성화' : '활성화', onClick: () => onToggle(c) }),
