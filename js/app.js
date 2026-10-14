@@ -55,6 +55,7 @@ if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PRO
     } else {
       current = null;
       companyCache = null;
+      $('login-form').reset();
       $('view-root').replaceChildren();
     }
   }
@@ -71,6 +72,7 @@ if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PRO
     btn.disabled = true;
     const { error } = await sb.auth.signInWithPassword({ email: $('login-email').value.trim(), password: $('login-password').value });
     btn.disabled = false;
+    if (!error) $('login-form').reset();
     if (error) { err.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.'; err.hidden = false; }
   });
   $('logout-btn').addEventListener('click', () => sb.auth.signOut());

@@ -196,7 +196,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .4); }
 .stat .value { font-size: 20px; font-weight: 600; margin-top: 4px; }
 .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
 .chart-card canvas { width: 100% !important; height: 320px !important; }
-table.grid { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+table.grid { display: table; gap: 0; grid-template-columns: none; width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 table.grid th, table.grid td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
 table.grid th:first-child, table.grid td:first-child, table.grid td.left, table.grid th.left { text-align: left; }
 table.grid tr:hover td { background: var(--row-hover); }
