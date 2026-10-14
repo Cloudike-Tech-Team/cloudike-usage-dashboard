@@ -45,7 +45,7 @@ export async function mount(root, ctx) {
     render();
   }
   function render() {
-    tbody.replaceChildren(rows.length ? rows.map(viewRow) : el('tr', {}, el('td', { colspan: '11', class: 'left muted', text: '데이터가 없습니다. "행 추가" 또는 "붙여넣기 가져오기"로 입력하세요.' })));
+    tbody.replaceChildren(...(rows.length ? rows.map(viewRow) : [el('tr', {}, el('td', { colspan: '11', class: 'left muted', text: '데이터가 없습니다. "행 추가" 또는 "붙여넣기 가져오기"로 입력하세요.' }))]));
   }
   function viewRow(r) {
     return el('tr', {},
