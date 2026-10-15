@@ -218,3 +218,23 @@ textarea.paste { min-height: 220px; font-family: ui-monospace, SFMono-Regular, M
 .toolbar { justify-content: flex-start; }
 .content { grid-template-columns: minmax(0, 1fr); }
 .table-wrap { overflow-x: auto; }
+
+/* ── 대시보드 기업 선택 토글 칩 (cs-dashboard의 .chip과 구분) ── */
+.company-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.company-chip {
+  font: inherit; cursor: pointer; text-align: left;
+  min-width: 170px; min-height: 56px; padding: 8px 14px;
+  border: 2px solid var(--primary); border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  color: var(--text);
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  transition: opacity .15s, filter .15s, border-color .15s, background .15s;
+}
+.company-chip .name { font-weight: 600; font-size: 15px; }
+.company-chip .id { font-size: 12px; color: var(--muted); }
+.company-chip[aria-pressed="false"] {
+  opacity: .4; filter: blur(0.6px) grayscale(1);
+  border-color: var(--border); background: var(--surface);
+}
+.company-chip:hover { opacity: 1; filter: none; }
+.company-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }

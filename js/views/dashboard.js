@@ -18,8 +18,8 @@ export async function mount(root, ctx) {
   for (const id of [...state.selected]) if (!companies.some((c) => c.company_id === id)) state.selected.delete(id);
 
   // 기업 선택: 토글 칩. on = 선명, off = 흐림(차트·카드에서 제외)
-  const chips = el('div', { class: 'chips' }, ...companies.map((c) => el('button', {
-    type: 'button', class: 'chip', 'aria-pressed': state.selected.has(c.company_id) ? 'true' : 'false',
+  const chips = el('div', { class: 'company-chips' }, ...companies.map((c) => el('button', {
+    type: 'button', class: 'company-chip', 'aria-pressed': state.selected.has(c.company_id) ? 'true' : 'false',
     onClick: (e) => {
       const on = !state.selected.has(c.company_id);
       on ? state.selected.add(c.company_id) : state.selected.delete(c.company_id);
