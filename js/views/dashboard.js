@@ -2,7 +2,7 @@ import { el, toast, mapDbError, option } from '../ui.js';
 import { buildSeries, filterByWeeks, latestRowsByCompany } from '../lib/series.js';
 import { formatGb, formatQuota, formatInt } from '../lib/units.js';
 import { weekRangeText, formatDateKo } from '../lib/week.js';
-import { renderLineChart } from '../charts.js';
+import { renderLineChart, datasetColors } from '../charts.js';
 
 const PERIODS = [[12, '최근 12주'], [26, '최근 26주'], [52, '최근 52주'], [0, '전체']];
 const STATUS_KO = { running: ['실행 중', 'warn'], success: ['성공', 'ok'], partial: ['일부 실패', 'bad'], failed: ['실패', 'bad'] };
@@ -17,7 +17,8 @@ export async function mount(root, ctx) {
   }
   for (const id of [...state.selected]) if (!companies.some((c) => c.company_id === id)) state.selected.delete(id);
 
-  // 기업 선택: 토글 칩. on = 선명, off = 흐림(차트·카드에서 제외)
+  // 기업 선택: 토글 칩. on = 색 점 + 진한 글자, off = 회색(차트·카드에서 제외). 색은 기업 순서로 고정해 차트와 맞춘다.
+  const colorOf = new Map(companies.map((c, i) => [c.company_id, datasetColors(i)]));
   const chips = el('div', { class: 'company-chips' }, ...companies.map((c) => el('button', {
     type: 'button', class: 'company-chip', 'aria-pressed': state.selected.has(c.company_id) ? 'true' : 'false',
     onClick: (e) => {
@@ -26,20 +27,21 @@ export async function mount(root, ctx) {
       e.currentTarget.setAttribute('aria-pressed', on ? 'true' : 'false');
       load();
     },
-  }, el('span', { class: 'name', text: c.name }), el('span', { class: 'id', text: `ID ${c.company_id}` }))));
+  }, el('span', { class: 'dot', style: `--c:${colorOf.get(c.company_id)}` }), el('span', { class: 'name', text: c.name }), el('span', { class: 'id', text: `#${c.company_id}` }))));
   const periodSel = el('select', { onChange: (e) => { state.weeks = Number(e.target.value); load(); } },
     ...PERIODS.map(([w, t]) => option(String(w), t, w === state.weeks)));
-  const runBox = el('div', { class: 'stat' }, el('div', { class: 'label', text: '최근 자동 수집' }), el('div', { class: 'value muted', text: '…' }));
+  const runBox = el('div', { class: 'run-status' }, el('span', { class: 'label', text: '최근 자동 수집' }), el('span', { class: 'value muted', text: '…' }));
   const cards = el('div', { class: 'cards' });
   const usageCanvas = el('canvas');
   const trafficCanvas = el('canvas');
   root.replaceChildren(
-    el('h2', { text: '대시보드' }),
-    el('div', { class: 'toolbar' }, el('label', {}, '기간', periodSel), el('div', {}, el('div', { class: 'hint', text: '기업 선택 (누르면 켜고 끔)' }), chips)),
-    runBox,
-    el('div', { class: 'chart-card' }, usageCanvas),
-    el('div', { class: 'chart-card' }, trafficCanvas),
-    el('h2', { text: '기업별 최신 주차 요약' }),
+    el('div', { class: 'page-head' },
+      el('div', {}, el('h2', { text: '대시보드' }), runBox),
+      el('label', { class: 'period' }, '기간', periodSel)),
+    el('div', { class: 'chip-row' }, el('span', { class: 'hint', text: '기업 선택' }), chips),
+    el('div', { class: 'chart-card' }, el('div', { class: 'chart-head' }, el('h3', { text: '사용량' }), el('span', { class: 'hint', text: 'GB · 주차별' })), el('div', { class: 'chart-body' }, usageCanvas)),
+    el('div', { class: 'chart-card' }, el('div', { class: 'chart-head' }, el('h3', { text: '트래픽' }), el('span', { class: 'hint', text: 'GB · 주차별' })), el('div', { class: 'chart-body' }, trafficCanvas)),
+    el('h2', { class: 'section-title', text: '기업별 최신 주차 요약' }),
     cards,
   );
 
@@ -58,8 +60,8 @@ export async function mount(root, ctx) {
     if (weeklyRes.error) return toast(mapDbError(weeklyRes.error), 'error');
     const selectedCompanies = companies.filter((c) => state.selected.has(c.company_id));
     const rows = filterByWeeks(weeklyRes.data || [], state.weeks);
-    renderLineChart(usageCanvas, buildSeries(rows, selectedCompanies, 'usage_gb'), { title: '사용량(GB) 추이', unit: 'GB' });
-    renderLineChart(trafficCanvas, buildSeries(rows, selectedCompanies, 'traffic_gb'), { title: '트래픽(GB) 추이', unit: 'GB' });
+    renderLineChart(usageCanvas, buildSeries(rows, selectedCompanies, 'usage_gb'), { unit: 'GB', colorOf });
+    renderLineChart(trafficCanvas, buildSeries(rows, selectedCompanies, 'traffic_gb'), { unit: 'GB', colorOf });
     renderCards(weeklyRes.data || [], selectedCompanies);
   }
 
@@ -70,20 +72,23 @@ export async function mount(root, ctx) {
     if (!run) { value.textContent = '아직 실행 기록이 없습니다'; return; }
     const [label, kind] = STATUS_KO[run.status] || [run.status, ''];
     const when = new Date(run.started_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-    value.replaceChildren(
-      el('span', { class: `badge ${kind}`, text: label }), ` ${when} · ${run.trigger === 'schedule' ? '정기' : '수동'} · 성공 ${run.success_count} / 실패 ${run.failure_count}`,
-      run.week_start ? el('div', { class: 'hint', text: `대상 주차 시작: ${formatDateKo(run.week_start)}` }) : null,
+    value.replaceChildren(...[
+      el('span', { class: `badge ${kind}`, text: label }),
+      el('span', { text: `${when} · ${run.trigger === 'schedule' ? '정기' : '수동'} · 성공 ${run.success_count} / 실패 ${run.failure_count}` }),
+      run.week_start ? el('span', { class: 'hint', text: `대상 주차 ${formatDateKo(run.week_start)}~` }) : null,
       run.failure_count || run.status === 'failed' ? el('div', { class: 'hint error', text: run.message || '' }) : null,
-    );
+    ].filter(Boolean));
   }
 
   function renderCards(allRows, selectedCompanies) {
     const latest = latestRowsByCompany(allRows);
     cards.replaceChildren(...selectedCompanies.map((c) => {
       const r = latest.get(c.company_id);
-      if (!r) return el('div', { class: 'stat' }, el('div', { class: 'label', text: c.name }), el('div', { class: 'value muted', text: '데이터 없음' }));
+      const title = el('div', { class: 'label' }, el('span', { class: 'dot', style: `--c:${colorOf.get(c.company_id)}` }), c.name);
+      if (!r) return el('div', { class: 'stat' }, title, el('div', { class: 'value muted', text: '데이터 없음' }));
       return el('div', { class: 'stat' },
-        el('div', { class: 'label', text: `${c.name} · ${r.week_label} (${weekRangeText(r.week_start)})` }),
+        title,
+        el('div', { class: 'hint', text: `${r.week_label} (${weekRangeText(r.week_start)})` }),
         el('div', { class: 'value', text: formatGb(r.usage_gb) }),
         el('div', { class: 'hint', text: `총 ${formatInt(r.total_users)}명 · 활성 ${formatInt(r.active_users)}명` }),
         el('div', { class: 'hint', text: `트래픽 ${formatGb(r.traffic_gb)} · 제공량 ${formatQuota(r.quota_gb)}` }),

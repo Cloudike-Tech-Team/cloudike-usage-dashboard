@@ -219,22 +219,43 @@ textarea.paste { min-height: 220px; font-family: ui-monospace, SFMono-Regular, M
 .content { grid-template-columns: minmax(0, 1fr); }
 .table-wrap { overflow-x: auto; }
 
-/* ── 대시보드 기업 선택 토글 칩 (cs-dashboard의 .chip과 구분) ── */
-.company-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+/* ── 대시보드: 머리글 · 기업 선택 칩 · 차트 카드 ── */
+.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.page-head h2 { font-size: 20px; letter-spacing: -0.01em; }
+.page-head .period { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); min-width: 0; }
+.page-head .period select { width: auto; padding: 5px 28px 5px 10px; }
+.run-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; font-size: 13px; }
+.run-status .label { color: var(--muted); }
+.run-status .value { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.run-status .value .hint.error { width: 100%; }
+
+.chip-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.company-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .company-chip {
-  font: inherit; cursor: pointer; text-align: left;
-  min-width: 170px; min-height: 56px; padding: 8px 14px;
-  border: 2px solid var(--primary); border-radius: 10px;
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
-  color: var(--text);
-  display: flex; flex-direction: column; justify-content: center; gap: 2px;
-  transition: opacity .15s, filter .15s, border-color .15s, background .15s;
+  font: inherit; font-size: 13px; cursor: pointer; text-align: left;
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 32px; padding: 4px 10px 4px 9px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface); color: var(--text);
+  transition: color .15s, border-color .15s, background .15s;
 }
-.company-chip .name { font-weight: 600; font-size: 15px; }
-.company-chip .id { font-size: 12px; color: var(--muted); }
-.company-chip[aria-pressed="false"] {
-  opacity: .4; filter: blur(0.6px) grayscale(1);
-  border-color: var(--border); background: var(--surface);
-}
-.company-chip:hover { opacity: 1; filter: none; }
+.company-chip .dot, .stat .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); flex: none; }
+.company-chip .name { font-weight: 600; }
+.company-chip .id { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.company-chip[aria-pressed="false"] { color: var(--muted); background: transparent; border-style: dashed; }
+.company-chip[aria-pressed="false"] .dot { background: var(--border); }
+.company-chip[aria-pressed="false"] .name { font-weight: 500; }
+.company-chip:hover { border-color: var(--muted); }
 .company-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.chart-card { padding: 0; border-radius: 10px; }
+.chart-head { display: flex; align-items: baseline; gap: 10px; padding: 14px 18px 0; }
+.chart-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.chart-body { padding: 6px 12px 10px; }
+.chart-card canvas { height: 300px !important; }
+
+.section-title { font-size: 14px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+.stat { border-radius: 10px; padding: 14px 16px; }
+.stat .label { display: flex; align-items: center; gap: 7px; color: var(--text); font-weight: 600; font-size: 13px; }
+.stat .value { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.stat .hint + .value, .stat .value + .hint { margin-top: 4px; }
