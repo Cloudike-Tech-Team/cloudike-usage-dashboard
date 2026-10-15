@@ -17,9 +17,16 @@ export async function mount(root, ctx) {
   }
   for (const id of [...state.selected]) if (!companies.some((c) => c.company_id === id)) state.selected.delete(id);
 
-  const checks = el('div', { class: 'checks' }, ...companies.map((c) => el('label', {},
-    el('input', { type: 'checkbox', checked: state.selected.has(c.company_id), onChange: (e) => { e.target.checked ? state.selected.add(c.company_id) : state.selected.delete(c.company_id); load(); } }),
-    `${c.name} (${c.company_id})`)));
+  // 기업 선택: 토글 칩. on = 선명, off = 흐림(차트·카드에서 제외)
+  const chips = el('div', { class: 'chips' }, ...companies.map((c) => el('button', {
+    type: 'button', class: 'chip', 'aria-pressed': state.selected.has(c.company_id) ? 'true' : 'false',
+    onClick: (e) => {
+      const on = !state.selected.has(c.company_id);
+      on ? state.selected.add(c.company_id) : state.selected.delete(c.company_id);
+      e.currentTarget.setAttribute('aria-pressed', on ? 'true' : 'false');
+      load();
+    },
+  }, el('span', { class: 'name', text: c.name }), el('span', { class: 'id', text: `ID ${c.company_id}` }))));
   const periodSel = el('select', { onChange: (e) => { state.weeks = Number(e.target.value); load(); } },
     ...PERIODS.map(([w, t]) => option(String(w), t, w === state.weeks)));
   const runBox = el('div', { class: 'stat' }, el('div', { class: 'label', text: '최근 자동 수집' }), el('div', { class: 'value muted', text: '…' }));
@@ -28,7 +35,7 @@ export async function mount(root, ctx) {
   const trafficCanvas = el('canvas');
   root.replaceChildren(
     el('h2', { text: '대시보드' }),
-    el('div', { class: 'toolbar' }, el('label', {}, '기간', periodSel), el('div', {}, el('div', { class: 'hint', text: '기업 선택' }), checks)),
+    el('div', { class: 'toolbar' }, el('label', {}, '기간', periodSel), el('div', {}, el('div', { class: 'hint', text: '기업 선택 (누르면 켜고 끔)' }), chips)),
     runBox,
     el('div', { class: 'chart-card' }, usageCanvas),
     el('div', { class: 'chart-card' }, trafficCanvas),
