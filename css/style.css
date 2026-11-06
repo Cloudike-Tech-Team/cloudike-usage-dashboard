@@ -218,6 +218,10 @@ textarea.paste { min-height: 220px; font-family: ui-monospace, SFMono-Regular, M
 .toolbar { justify-content: flex-start; }
 .content { grid-template-columns: minmax(0, 1fr); }
 .table-wrap { overflow-x: auto; }
+/* 표 안에서 세로 스크롤 시 열 이름 고정(가로 스크롤 컨테이너라 페이지 기준 sticky는 불가) */
+.table-wrap.sticky-head { overflow: auto; max-height: calc(100vh - 180px); border-radius: 8px; }
+.table-wrap.sticky-head table.grid { overflow: visible; }
+.table-wrap.sticky-head table.grid th { position: sticky; top: 0; z-index: 1; background: var(--surface); box-shadow: inset 0 -1px 0 var(--border); }
 
 /* ── 대시보드: 머리글 · 기업 선택 칩 · 차트 카드 ── */
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }

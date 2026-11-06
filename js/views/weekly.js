@@ -29,7 +29,7 @@ export async function mount(root, ctx) {
     el('thead', {}, el('tr', {}, ...['주차', '기간', '총 유저수', '활성 유저수', '사용량', '트래픽', '제공량', '출처', '기록 날짜', '메모', '작업']
       .map((t, i) => el('th', { class: i < 2 || i === 9 ? 'left' : '', text: t })))),
     tbody);
-  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, el('div', { class: 'table-wrap' }, table));
+  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, el('div', { class: 'table-wrap sticky-head' }, table));
 
   let rows = [];
   let allRows = []; // 기간 필터 전 전체 행(덮어쓰기 확인용)
