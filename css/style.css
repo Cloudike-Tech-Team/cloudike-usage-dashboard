@@ -30,6 +30,8 @@
 }
 
 * { box-sizing: border-box; }
+/* 트랙패드 가로 스와이프로 뒤로/앞으로 가기 방지(주차별 데이터의 기업 전환 스와이프와 충돌) */
+html, body { overscroll-behavior-x: none; }
 [hidden] { display: none !important; }
 body {
   margin: 0;

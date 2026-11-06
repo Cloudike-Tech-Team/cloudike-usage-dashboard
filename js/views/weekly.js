@@ -3,6 +3,7 @@ import { mondayOf, weekLabel, weekRangeText, formatDateKo, todayKST, kstMidnight
 import { formatGb, formatQuota, formatInt } from '../lib/units.js';
 import { filterByWeeks } from '../lib/series.js';
 import { validateWeeklyInput } from '../lib/weekly-form.js';
+import { makeWheelSwipe, touchSwipeDir } from '../lib/swipe.js';
 
 const PERIODS = [[12, '최근 12주'], [26, '최근 26주'], [52, '최근 52주'], [0, '전체']];
 const SOURCE_KO = { auto: '자동', manual: '수동', import: '가져오기' };
@@ -16,7 +17,7 @@ export async function mount(root, ctx) {
   }
   if (!companies.some((c) => c.company_id === state.companyId)) state.companyId = companies[0].company_id;
 
-  const companySel = el('select', { onChange: (e) => { state.companyId = Number(e.target.value); addArea.replaceChildren(); load(); } },
+  const companySel = el('select', { onChange: (e) => selectCompany(Number(e.target.value)) },
     ...companies.map((c) => option(String(c.company_id), `${c.name} (${c.company_id})`, c.company_id === state.companyId)));
   const periodSel = el('select', { onChange: (e) => { state.weeks = Number(e.target.value); load(); } },
     ...PERIODS.map(([w, t]) => option(String(w), t, w === state.weeks)));
@@ -29,7 +30,49 @@ export async function mount(root, ctx) {
     el('thead', {}, el('tr', {}, ...['주차', '기간', '총 유저수', '활성 유저수', '사용량', '트래픽', '제공량', '출처', '기록 날짜', '메모', '작업']
       .map((t, i) => el('th', { class: i < 2 || i === 9 ? 'left' : '', text: t })))),
     tbody);
-  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, el('div', { class: 'table-wrap sticky-head' }, table));
+  const tableWrap = el('div', { class: 'table-wrap sticky-head' }, table);
+  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, tableWrap);
+
+  function selectCompany(id) {
+    state.companyId = id;
+    companySel.value = String(id);
+    addArea.replaceChildren();
+    load();
+  }
+  // 가로 스와이프(트랙패드·터치)로 이전/다음 기업 전환. 끝에서는 멈춘다.
+  function stepCompany(dir) {
+    const next = companies[companies.findIndex((c) => c.company_id === state.companyId) + dir];
+    if (!next) return;
+    selectCompany(next.company_id);
+    toast(`${next.name} (${next.company_id})`);
+  }
+  const isFormField = (t) => t instanceof Element && !!t.closest('input, select, textarea');
+  // 표가 그 방향으로 더 스크롤될 수 있으면 표 스크롤을 우선한다.
+  const tableCanScroll = (t, dx) => tableWrap.contains(t) && (dx > 0
+    ? tableWrap.scrollLeft + tableWrap.clientWidth < tableWrap.scrollWidth - 1
+    : tableWrap.scrollLeft > 0);
+  const wheelSwipe = makeWheelSwipe();
+  root.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || isFormField(e.target)) return;
+    if (tableCanScroll(e.target, e.deltaX)) { wheelSwipe.block(e.timeStamp); return; }
+    e.preventDefault();
+    const dir = wheelSwipe(e.deltaX, e.deltaY, e.timeStamp);
+    if (dir) stepCompany(dir);
+  }, { passive: false });
+  let touch = null;
+  root.addEventListener('touchstart', (e) => {
+    const p = e.touches[0];
+    touch = e.touches.length === 1 && !isFormField(e.target)
+      ? { x: p.clientX, y: p.clientY, left: tableWrap.scrollLeft } : null;
+  }, { passive: true });
+  root.addEventListener('touchend', (e) => {
+    if (!touch) return;
+    const p = e.changedTouches[0];
+    const scrolled = tableWrap.scrollLeft !== touch.left; // 표를 가로 스크롤한 터치는 제외
+    const dir = scrolled ? 0 : touchSwipeDir(p.clientX - touch.x, p.clientY - touch.y);
+    touch = null;
+    if (dir) stepCompany(dir);
+  });
 
   let rows = [];
   let allRows = []; // 기간 필터 전 전체 행(덮어쓰기 확인용)
