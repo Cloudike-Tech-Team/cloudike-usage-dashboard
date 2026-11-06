@@ -8,6 +8,9 @@ import { makeWheelSwipe, touchSwipeDir } from '../lib/swipe.js';
 const PERIODS = [[12, '최근 12주'], [26, '최근 26주'], [52, '최근 52주'], [0, '전체']];
 const SOURCE_KO = { auto: '자동', manual: '수동', import: '가져오기' };
 const state = { companyId: null, weeks: 52 };
+// 첫/마지막 기업에서 더 넘기면 옆 탭으로 이동
+const EDGE_VIEWS = { [-1]: ['dashboard', '대시보드'], [1]: ['companies', '기업 관리'] };
+const CHEVRON = { [-1]: 'M15 6l-6 6 6 6', [1]: 'M9 6l6 6-6 6' };
 
 export async function mount(root, ctx) {
   const companies = await ctx.companies();
@@ -31,18 +34,34 @@ export async function mount(root, ctx) {
       .map((t, i) => el('th', { class: i < 2 || i === 9 ? 'left' : '', text: t })))),
     tbody);
   const tableWrap = el('div', { class: 'table-wrap sticky-head' }, table);
-  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, tableWrap);
+  const navBtn = (dir) => el('button', { type: 'button', class: `page-nav ${dir < 0 ? 'prev' : 'next'}`, onClick: () => stepCompany(dir),
+    html: `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="${CHEVRON[dir]}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` });
+  const prevBtn = navBtn(-1);
+  const nextBtn = navBtn(1);
+  root.replaceChildren(el('h2', { text: '주차별 데이터' }), toolbar, addArea, tableWrap, prevBtn, nextBtn);
+  updateNavLabels();
 
   function selectCompany(id) {
     state.companyId = id;
     companySel.value = String(id);
     addArea.replaceChildren();
+    updateNavLabels();
     load();
   }
-  // 가로 스와이프(트랙패드·터치)로 이전/다음 기업 전환. 끝에서는 멈춘다.
+  const neighbor = (dir) => companies[companies.findIndex((c) => c.company_id === state.companyId) + dir];
+  function updateNavLabels() {
+    for (const [btn, dir] of [[prevBtn, -1], [nextBtn, 1]]) {
+      const c = neighbor(dir);
+      const label = c ? `${dir < 0 ? '이전' : '다음'} 기업: ${c.name}` : `${EDGE_VIEWS[dir][1]}(으)로 이동`;
+      btn.title = label;
+      btn.setAttribute('aria-label', label);
+      btn.classList.toggle('edge', !c);
+    }
+  }
+  // 화살표 버튼·가로 스와이프(트랙패드·터치)로 이전/다음 기업 전환. 끝을 넘으면 옆 탭으로 이동한다.
   function stepCompany(dir) {
-    const next = companies[companies.findIndex((c) => c.company_id === state.companyId) + dir];
-    if (!next) return;
+    const next = neighbor(dir);
+    if (!next) return ctx.navigate(EDGE_VIEWS[dir][0]);
     selectCompany(next.company_id);
     toast(`${next.name} (${next.company_id})`);
   }
