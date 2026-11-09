@@ -17,7 +17,11 @@ function scrollableX(target, dx) {
   }
   return null;
 }
-const isFormField = (t) => t instanceof Element && !!t.closest('input, select, textarea');
+// 입력 중인(포커스된) 칸에서의 가로 제스처는 커서 이동 등에 양보한다.
+const isEditing = (t) => {
+  const f = t instanceof Element && t.closest('input, select, textarea');
+  return !!f && f === document.activeElement;
+};
 
 // 모든 화면 양옆 화살표 + 가로 스와이프. 현재 화면이 handler로 먼저 처리(예: 주차별 데이터의 기업 전환)하고,
 // 처리하지 않으면 옆 탭으로 이동한다.
@@ -52,22 +56,25 @@ export function createPager({ host, getCurrent, navigate }) {
     }
   }
 
+  // 내용이 짧은 화면에서도 빈 영역 스와이프가 먹도록 문서 전체에서 감지한다(로그인 화면 제외).
+  const active = () => !host.hidden;
   const wheelSwipe = makeWheelSwipe();
-  host.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || isFormField(e.target)) return;
+  document.addEventListener('wheel', (e) => {
+    if (!active() || Math.abs(e.deltaX) <= Math.abs(e.deltaY) || isEditing(e.target)) return;
     if (scrollableX(e.target, e.deltaX)) { wheelSwipe.block(e.timeStamp); return; } // 표 등 가로 스크롤 우선
     e.preventDefault();
     const dir = wheelSwipe(e.deltaX, e.deltaY, e.timeStamp);
     if (dir) step(dir);
   }, { passive: false });
   let touch = null;
-  host.addEventListener('touchstart', (e) => {
+  document.addEventListener('touchstart', (e) => {
+    if (!active()) { touch = null; return; }
     const p = e.touches[0];
     const area = scrollableX(e.target);
-    touch = e.touches.length === 1 && !isFormField(e.target)
+    touch = e.touches.length === 1 && !isEditing(e.target)
       ? { x: p.clientX, y: p.clientY, area, left: area?.scrollLeft } : null;
   }, { passive: true });
-  host.addEventListener('touchend', (e) => {
+  document.addEventListener('touchend', (e) => {
     if (!touch) return;
     const p = e.changedTouches[0];
     const scrolled = touch.area && touch.area.scrollLeft !== touch.left; // 가로 스크롤한 터치는 제외
