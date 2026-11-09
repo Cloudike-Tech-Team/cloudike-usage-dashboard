@@ -30,3 +30,12 @@ test('touch swipe direction', () => {
   assert.equal(touchSwipeDir(30, 0), 0); // 너무 짧음
   assert.equal(touchSwipeDir(-100, 90), 0); // 세로에 가까움
 });
+
+test('adjacentTab follows nav order and stops at ends', async () => {
+  const { adjacentTab } = await import('../js/pager.js');
+  const tabs = [{ view: 'dashboard' }, { view: 'weekly' }, { view: 'companies' }];
+  assert.equal(adjacentTab(tabs, 'dashboard', 1).view, 'weekly');
+  assert.equal(adjacentTab(tabs, 'weekly', -1).view, 'dashboard');
+  assert.equal(adjacentTab(tabs, 'dashboard', -1), null);
+  assert.equal(adjacentTab(tabs, 'companies', 1), null);
+});

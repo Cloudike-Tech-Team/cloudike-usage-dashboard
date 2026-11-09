@@ -30,7 +30,7 @@
 }
 
 * { box-sizing: border-box; }
-/* 트랙패드 가로 스와이프로 뒤로/앞으로 가기 방지(주차별 데이터의 기업 전환 스와이프와 충돌) */
+/* 트랙패드 가로 스와이프로 뒤로/앞으로 가기 방지(화면 전환 스와이프와 충돌) */
 html, body { overscroll-behavior-x: none; }
 [hidden] { display: none !important; }
 body {
@@ -223,7 +223,7 @@ textarea.paste { min-height: 220px; font-family: ui-monospace, SFMono-Regular, M
 /* 표 안에서 세로 스크롤 시 열 이름 고정(가로 스크롤 컨테이너라 페이지 기준 sticky는 불가) */
 .table-wrap.sticky-head { overflow: auto; max-height: calc(100vh - 180px); border-radius: 8px; }
 .table-wrap.sticky-head table.grid { overflow: visible; }
-/* 주차별 데이터: 양옆 기업 전환 화살표(끝에서는 옆 탭으로 이동) */
+/* 모든 화면 양옆 전환 화살표(주차별 데이터에선 기업 전환, 그 외·끝에선 옆 탭) */
 .page-nav {
   position: fixed; top: 50%; transform: translateY(-50%); z-index: 5;
   width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;

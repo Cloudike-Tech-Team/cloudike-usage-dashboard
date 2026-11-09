@@ -1,5 +1,6 @@
 import { makeDb } from './db.js';
 import { toast, mapDbError } from './ui.js';
+import { createPager } from './pager.js';
 import * as dashboard from './views/dashboard.js';
 import * as weekly from './views/weekly.js';
 import * as companies from './views/companies.js';
@@ -17,12 +18,14 @@ if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PRO
   let user = null;
   let current = null;
   let companyCache = null;
+  const pager = createPager({ host: $('app-view'), getCurrent: () => current, navigate });
 
   const ctx = {
     db,
     toast,
     get user() { return user; },
     navigate,
+    pager,
     async companies(force = false) {
       if (companyCache && !force) return companyCache;
       const { data, error } = await db.listCompanies();
@@ -41,6 +44,7 @@ if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.includes('YOUR-PRO
     const root = $('view-root');
     const host = document.createElement('div');
     root.replaceChildren(host);
+    pager.set(null); // 화면별 처리기는 mount에서 다시 등록
     VIEWS[name].mount(host, ctx);
   }
 
