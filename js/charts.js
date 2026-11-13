@@ -29,7 +29,8 @@ export function renderLineChart(canvas, series, { unit, colorOf }) {
         const color = (colorOf && colorOf.get(d.companyId)) || datasetColors(i);
         return {
           label: d.label, data: d.data, borderColor: color, backgroundColor: color,
-          spanGaps: false, tension: 0.3, borderWidth: 2,
+          // monotone: 급등 직후 소폭 증가 구간에서 곡선이 실제 값 위로 솟았다 내려와 감소처럼 보이지 않도록(오버슈트 방지)
+          spanGaps: false, cubicInterpolationMode: 'monotone', borderWidth: 2,
           pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 12, pointBorderColor: surface, pointBorderWidth: 2,
         };
       }),
